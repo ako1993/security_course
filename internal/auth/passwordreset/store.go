@@ -126,7 +126,7 @@ func (store *Store) ResetPassword(ctx context.Context, value, passwordHash strin
 
 func hashToken(value string) string {
 	hash := sha256.Sum256([]byte(value))
-	return string(hash[:])
+	return hex.EncodeToString(hash[:])
 }
 
 func formatTimestamp(timestamp time.Time) string {
