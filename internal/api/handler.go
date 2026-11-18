@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/bootdotdev/learn-web-security/internal/accounts"
@@ -95,6 +96,17 @@ func (handler *Handler) Products(responseWriter http.ResponseWriter, request *ht
 }
 
 func (handler *Handler) WarehouseOrders(responseWriter http.ResponseWriter, request *http.Request) {
+	api_key := request.Header.Get("X-API-Key")
+	key, is_valid, err := handler.apiStore.FindKey(request.Context(), api_key)
+	if err != nil {
+		fmt.Printf("ERROR FINDING API KEY:%v", err)
+		return
+	}
+	if !is_valid {
+		http.Error(responseWriter, "key missing or invalid", 401)
+	} else if key.Scope != "orders:read" {
+		http.Error(responseWriter, "Access Denied", 403)
+	}
 	orders, err := handler.orderStore.ListAll(request.Context())
 	if err != nil {
 		handler.internalError(responseWriter, request, err)
