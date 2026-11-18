@@ -2,6 +2,7 @@ package account
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/bootdotdev/learn-web-security/internal/accounts"
 	"github.com/bootdotdev/learn-web-security/internal/auth/mfa"
+	"github.com/bootdotdev/learn-web-security/internal/auth/passwords"
 	"github.com/bootdotdev/learn-web-security/internal/auth/sessions"
 	"github.com/bootdotdev/learn-web-security/internal/httpx"
 	"github.com/bootdotdev/learn-web-security/internal/logging"
@@ -70,6 +72,27 @@ func (handler *Handler) Page(responseWriter http.ResponseWriter, request *http.R
 func (handler *Handler) UpdateEmail(responseWriter http.ResponseWriter, request *http.Request) {
 	current, ok := handler.requireAuth(responseWriter, request)
 	if !ok || !handler.verifyCSRF(responseWriter, request, current.Session.CSRFToken) {
+		return
+	}
+	pw, pwerr := httpx.FormValue(request, "currentPassword")
+	if pwerr != nil {
+		handler.errorPage(responseWriter, http.StatusBadRequest, "Invalid Request", "The submitted form is invalid.")
+		return
+	}
+
+	if pw == "" {
+		if err := handler.renderPage(responseWriter, 403, current, "Re-enter your current password to change your email."); err != nil {
+			handler.internalError(responseWriter, request, err)
+		}
+		return
+	}
+	pw_hash := current.User.PasswordHash
+	isvalid := passwords.Verify(pw, pw_hash)
+	fmt.Println(isvalid)
+	if !isvalid {
+		if err := handler.renderPage(responseWriter, 403, current, "Re-enter your current password to change your email."); err != nil {
+			handler.internalError(responseWriter, request, err)
+		}
 		return
 	}
 	email, emailErr := httpx.FormValue(request, "email")
