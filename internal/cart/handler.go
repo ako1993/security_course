@@ -1,8 +1,9 @@
 package cart
 
 import (
-	"math"
+	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/bootdotdev/learn-web-security/internal/accounts"
@@ -187,10 +188,16 @@ func makeItemViews(items []Item) []itemView {
 }
 
 func parseQuantity(value string, minimum int64) (int64, bool) {
-	parsed, err := strconv.ParseFloat(value, 64)
-	if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) || parsed != math.Trunc(parsed) {
+	pattern := regexp.MustCompile(`^(0|[1-9]\d{0,1})$`)
+	if !pattern.MatchString(value) {
+		fmt.Printf("INVALID NUMBER\n")
 		return 0, false
 	}
-	quantity := int64(parsed)
-	return quantity, quantity >= minimum && quantity <= MaximumQuantity
+	num, err := strconv.Atoi(value)
+	if err != nil {
+		fmt.Printf("Error: invalid integer format:%v\n", err)
+		return 0, false
+	}
+
+	return int64(num), int64(num) >= minimum && num <= MaximumQuantity
 }
